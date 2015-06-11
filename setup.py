@@ -63,4 +63,4 @@ setup(name="vtkEVS",
       url="http://microview.sourceforge.net/vtkEVS",
       packages=['vtkEVS'],
       requires=['vtkAtamai'],
-      license="BSD")
+      license="MIT")
