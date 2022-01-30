@@ -1,6 +1,4 @@
-Requirements
-============
-
+# Requirements
 
 You need to have the following software installed first before
 installing vtkEVS. Please consult the individual packages from
@@ -12,12 +10,11 @@ the links below to learn how to install each package:
   * vtkAtamai (https://github.com/parallaxinnovations/vtkAtamai)
   * wxpython (https://www.wxpython.org)
     
-Installation instructions
-=========================
-
+# Installation instructions
 
 vtkEVS uses python's distutils package to install itself.
 To install vtkEVS on your system, simply type:
 
-
-  python setup.py install
+```
+python setup.py install
+```
