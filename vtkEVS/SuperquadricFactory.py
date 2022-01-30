@@ -119,7 +119,7 @@ class SuperquadricFactory(ActorFactory.ActorFactory):
         self.Modified()
 
     def SetColor(self, *args):
-        apply(self._property.SetColor, args)
+        self._property.SetColor(*args)
         self.Modified()
 
     def _MakeActors(self):

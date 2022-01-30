@@ -1,5 +1,9 @@
+from __future__ import division
+from past.utils import old_div
 import logging
 from vtkAtamai import WindowLevelInteractionMode
+
+logger = logging.getLogger(__name__)
 
 
 class WindowLevelInteractionMode2(WindowLevelInteractionMode.WindowLevelInteractionMode):
@@ -23,7 +27,7 @@ class WindowLevelInteractionMode2(WindowLevelInteractionMode.WindowLevelInteract
         mlo, mhi = self._DataRange
         lo, hi = table.GetTableRange()
 
-        level = (lo + hi) / 2.0
+        level = old_div((lo + hi), 2.0)
         window = hi - lo
 
         level = level + (event.x - self._LastX) * (mhi - mlo) / 500.0
@@ -41,14 +45,14 @@ class WindowLevelInteractionMode2(WindowLevelInteractionMode.WindowLevelInteract
         if level < mlo:
             level = mlo
 
-        lo = level - window / 2.0
-        hi = level + window / 2.0
+        lo = level - old_div(window, 2.0)
+        hi = level + old_div(window, 2.0)
 
         if table.IsA('vtkWindowLevelLookupTable'):
             table.SetWindow(window)
             table.SetLevel(level)
         else:
-            logging.warning('Using a vtkLookupTable!!')
+            logger.warning('Using a vtkLookupTable!!')
             table.SetTableRange(lo, hi)
         table.Modified()
 

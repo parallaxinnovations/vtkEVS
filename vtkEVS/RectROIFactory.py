@@ -18,7 +18,11 @@ Public Methods:
     HERE! fix me
 
 """
+from __future__ import division
+from __future__ import print_function
 
+from builtins import range
+from past.utils import old_div
 import vtk
 from vtkAtamai import ActorFactory
 import math
@@ -180,7 +184,7 @@ class RectROIFactory(ActorFactory.ActorFactory):
         image.UpdateInformation()
         # b = image.GetBounds()
         e = image.GetWholeExtent()
-        print "extent: ", e
+        print("extent: ", e)
         spacing = image.GetSpacing()
         origin = image.GetOrigin()
         del image
@@ -206,7 +210,7 @@ class RectROIFactory(ActorFactory.ActorFactory):
             self._XOnly = False
             self._YOnly = False
 
-        print "xsize, ysize: ", xsize, ysize
+        print("xsize, ysize: ", xsize, ysize)
         xc = (e[1] - e[0]) * 0.5 * spacing[0] + origin[0]
         yc = (e[3] - e[2]) * 0.5 * spacing[1] + origin[1]
         xs = xsize * 0.5
@@ -252,7 +256,7 @@ class RectROIFactory(ActorFactory.ActorFactory):
         self._Renderers[0].SetDisplayPoint(event.x, event.y, 0.49)
         self._Renderers[0].DisplayToWorld()
         x0, y0, z0, w = self._Renderers[0].GetWorldPoint()
-        return self._Transform.GetInverse().TransformPoint(x0 / w, y0 / w, z0 / w)
+        return self._Transform.GetInverse().TransformPoint(old_div(x0, w), old_div(y0, w), old_div(z0, w))
 
     def _StartModifyROI(self, event):
         self.diffx = 0.0
@@ -484,8 +488,8 @@ class RectROIFactory(ActorFactory.ActorFactory):
         self._Corners[3].SetCenter((curpos[0], curpos[1], z))
 
         # center
-        self._Center.SetCenter(((self.pos[0] + curpos[0]) / 2.0,
-                                (self.pos[1] + curpos[1]) / 2.0,
+        self._Center.SetCenter((old_div((self.pos[0] + curpos[0]), 2.0),
+                                old_div((self.pos[1] + curpos[1]), 2.0),
                                 z))
 
         self._ROIProperty.SetOpacity(1)
@@ -549,7 +553,7 @@ class RectROIFactory(ActorFactory.ActorFactory):
         worldsize = camera.GetParallelScale()
         windowWidth, windowHeight = renderer.GetSize()
         if windowWidth > 0 and windowHeight > 0:
-            pitch = worldsize / windowHeight
+            pitch = old_div(worldsize, windowHeight)
             if self._Mode == 0 or self._Mode == 1:
                 self._SetCornerSizes(pitch * 24)
                 self._Center.SetSize(pitch * 48)
@@ -596,7 +600,7 @@ class CrossSource(vtk.vtkAppendPolyData):
     def _Update(self):
 
         px, py, pz = self._center
-        hs = self._size / 2.0
+        hs = old_div(self._size, 2.0)
 
         self._line1.SetPoint1(px - hs, py, pz)
         self._line1.SetPoint2(px + hs, py, pz)
@@ -633,8 +637,8 @@ class RectangleSource(vtk.vtkAppendPolyData):
         # we don't care about z
 
         self._bounds = (x0, x1, y0, y1, z0, z0)
-        self._center = ((bounds[0] + bounds[1]) / 2.0,
-                        (bounds[2] + bounds[3]) / 2.0,
+        self._center = (old_div((bounds[0] + bounds[1]), 2.0),
+                        old_div((bounds[2] + bounds[3]), 2.0),
                         z0)
         self._sizes = ((bounds[1] - bounds[0]),
                        (bounds[3] - bounds[2]))

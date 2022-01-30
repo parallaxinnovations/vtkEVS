@@ -60,6 +60,8 @@ import logging
 import wx
 import collections
 
+
+logger = logging.getLogger(__name__)
 # this code should be retired soon
 
 
@@ -130,6 +132,11 @@ def askopenfilename(**options):
     else:
         message = ''
 
+    _style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_CHANGE_DIR
+
+    if 'multiple' in options:
+        _style |= wx.FD_MULTIPLE
+
     # for backward compatible reasons, we may be passed a bare list
     if not isinstance(options['filetypes'], collections.OrderedDict):
         options['filetypes'] = collections.OrderedDict(options['filetypes'])
@@ -137,10 +144,13 @@ def askopenfilename(**options):
     wildcard, filter_index = convert_to_wx(options['filetypes'], None)
 
     dlg = wx.FileDialog(wx.GetApp().GetTopWindow(), message=message, defaultDir=defaultdir, wildcard=wildcard,
-                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_CHANGE_DIR)
+                        style=_style)
 
     if dlg.ShowModal() == wx.ID_OK:
-        return dlg.GetPath()
+        if 'multiple' in options:
+            return dlg.GetPaths()
+        else:
+            return dlg.GetPath()
     else:
         return None
 
@@ -149,11 +159,11 @@ def asksaveasfilename(**options):
     """Prompts the user for a filename to save to."""
 
     if not 'filetypes' in options:
-        logging.error("asksaveasfilename requires a 'filetypes' argument")
+        logger.error("asksaveasfilename requires a 'filetypes' argument")
         return
 
     if not isinstance(options['filetypes'], collections.OrderedDict):
-        logging.error(
+        logger.error(
             "asksaveasfilename filetypes must be of type OrderedDict!")
         return
 
@@ -164,7 +174,7 @@ def asksaveasfilename(**options):
     if 'defaultextension' in options:
         default_extension = options['defaultextension']
     else:
-        key = options['filetypes'].keys()[0]
+        key = list(options['filetypes'].keys())[0]
         default_extension = options['filetypes'][key][0]
     if 'defaultfile' in options:
         defaultfile = options['defaultfile']

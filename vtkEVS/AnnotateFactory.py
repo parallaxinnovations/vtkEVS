@@ -1,3 +1,4 @@
+from __future__ import division
 # =========================================================================
 #
 # Copyright (c) 2000-2002 Enhanced Vision Systems
@@ -39,8 +40,10 @@
 # This file represents a derivative work by Parallax Innovations Inc.
 #
 
+from past.utils import old_div
 from vtkAtamai import ActorFactory
 import vtk
+from zope import component
 
 
 class AnnotateFactory(ActorFactory.ActorFactory):
@@ -163,13 +166,16 @@ class AnnotateFactory(ActorFactory.ActorFactory):
         x = p[0]
         y = p[1]
 
-        if self._Position[1] == "E":
-            x += 5
-        else:
-            x -= 5
+        if len(self._Position) > 1:
+
+            if self._Position[1] == "E":
+                x += 5
+            elif self._Position[1] == "W":
+                x -= 5
+
         if self._Position[0] == "N":
             y += 5
-        else:
+        elif self._Position[0] == "S":
             y -= 5
 
         # pad
@@ -186,6 +192,12 @@ class AnnotateFactory(ActorFactory.ActorFactory):
             self._RectanglePoints.InsertPoint(1, x, y - h, 0)
             self._RectanglePoints.InsertPoint(2, x + w, y - h, 0)
             self._RectanglePoints.InsertPoint(3, x + w, y, 0)
+        else:
+            # default?
+            self._RectanglePoints.InsertPoint(0, x - old_div(w, 2), y + h, 0)
+            self._RectanglePoints.InsertPoint(1, x - old_div(w, 2), y, 0)
+            self._RectanglePoints.InsertPoint(2, x + old_div(w, 2), y, 0)
+            self._RectanglePoints.InsertPoint(3, x + old_div(w, 2), y + h, 0)
 
     def SetColor(self, r, g, b):
         """Set the colour of the actor

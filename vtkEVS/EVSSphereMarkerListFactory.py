@@ -1,3 +1,4 @@
+from __future__ import division
 # =========================================================================
 #
 # Copyright (c) 2000-2002 Enhanced Vision Systems
@@ -39,6 +40,8 @@
 # This file represents a derivative work by Parallax Innovations Inc.
 #
 
+from builtins import range
+from past.utils import old_div
 from vtkAtamai import ActorFactory, SphereMarkFactory
 
 
@@ -65,46 +68,46 @@ class EVSSphereMarkerListFactory(ActorFactory.ActorFactory):
 
     def SetSphereColor(self):
         length = self.SphereCounter
-        div = length / 6
+        div = old_div(length, 6)
         remainder = length % 6
         if remainder == 0:
             color = [1.0, 0.0, 0.0]
             i = 1
             while (div >= i):
-                color[0] = 0.25 + color[0] / 2
+                color[0] = 0.25 + old_div(color[0], 2)
                 i = i + 1
         elif remainder == 1:
             color = [0.0, 1.0, 0.0]
             i = 1
             while (div >= i):
-                color[1] = 0.25 + color[1] / 2
+                color[1] = 0.25 + old_div(color[1], 2)
                 i = i + 1
         elif remainder == 2:
             color = [0.0, 0.0, 1.0]
             i = 1
             while (div >= i):
-                color[2] = 0.25 + color[2] / 2
+                color[2] = 0.25 + old_div(color[2], 2)
                 i = i + 1
         elif remainder == 3:
             color = [1.0, 1.0, 0.0]
             i = 1
             while (div >= i):
-                color[0] = 0.25 + color[0] / 2
-                color[1] = 0.25 + color[1] / 2
+                color[0] = 0.25 + old_div(color[0], 2)
+                color[1] = 0.25 + old_div(color[1], 2)
                 i = i + 1
         elif remainder == 4:
             color = [1.0, 0.0, 1.0]
             i = 1
             while (div >= i):
-                color[0] = 0.25 + color[0] / 2
-                color[2] = 0.25 + color[2] / 2
+                color[0] = 0.25 + old_div(color[0], 2)
+                color[2] = 0.25 + old_div(color[2], 2)
                 i = i + 1
         elif remainder == 5:
             color = [0.0, 1.0, 1.0]
             i = 1
             while (div >= i):
-                color[1] = 0.25 + color[1] / 2
-                color[2] = 0.25 + color[2] / 2
+                color[1] = 0.25 + old_div(color[1], 2)
+                color[2] = 0.25 + old_div(color[2], 2)
                 i = i + 1
 
         self.SphereMarkList[len(self.SphereMarkList) - 1].SetColor(

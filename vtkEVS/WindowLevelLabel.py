@@ -1,3 +1,5 @@
+from __future__ import division
+from past.utils import old_div
 from vtkAtamai.WindowLevelLabel import WindowLevelLabel as oldWindowLevelLabel
 from vtkAtamai.Label import Label
 import vtk
@@ -28,7 +30,7 @@ class WindowLevelLabel(oldWindowLevelLabel):
         kw["font"] = "arial"
         kw["text"] = "W/L"
 
-        apply(Label.__init__, (self, parent), kw)
+        Label.__init__(*(self, parent), **kw)
 
         self._Table = None
         self._DataRange = None
@@ -139,7 +141,7 @@ class WindowLevelLabel(oldWindowLevelLabel):
         min, max = self._Table.GetTableRange()
 
         self._Window = max - min
-        self._Level = (max + min) / 2.0
+        self._Level = old_div((max + min), 2.0)
 
         # create a formatted string, and set the label
         if self._minmax:

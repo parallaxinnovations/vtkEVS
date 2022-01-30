@@ -1,3 +1,5 @@
+from __future__ import division
+from __future__ import absolute_import
 # =========================================================================
 #
 # Copyright (c) 2000-2002 Enhanced Vision Systems
@@ -39,7 +41,9 @@
 # This file represents a derivative work by Parallax Innovations Inc.
 #
 
-import AnnotateFactory
+from builtins import range
+from past.utils import old_div
+from . import AnnotateFactory
 import vtk
 
 
@@ -206,9 +210,9 @@ class IntensityAnnotateFactory(AnnotateFactory.AnnotateFactory):
             else:
                 line2 = "(%.3f, %.3f) (mm)" % (x, y)
         else:
-            x = (x - x0) / xstep
-            y = (y - y0) / ystep
-            z = (z - z0) / zstep
+            x = old_div((x - x0), xstep)
+            y = old_div((y - y0), ystep)
+            z = old_div((z - z0), zstep)
             if self._Dimension == 3:
                 line2 = "(%.1f, %.1f, %.1f) (pixel)" % (x, y, z)
             else:

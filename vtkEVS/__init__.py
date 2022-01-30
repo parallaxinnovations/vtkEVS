@@ -1,7 +1,6 @@
 # =========================================================================
 #
-# Copyright (c) 2000-2002 Enhanced Vision Systems
-# Copyright (c) 2002-2008 GE Healthcare
+# Copyright (c) 2000-2008 GE Healthcare
 # Copyright (c) 2011-2022 Parallax Innovations Inc.
 #
 # Use, modification and redistribution of the software, in source or

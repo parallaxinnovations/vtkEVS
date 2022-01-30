@@ -1,3 +1,6 @@
+from __future__ import division
+from __future__ import print_function
+from past.utils import old_div
 import wx
 
 
@@ -56,7 +59,7 @@ class RGBComponentPicker(wx.Panel):
         gc.DrawRectangle(1, 1, w - 2, h - 2)
 
         # draw two arrows -- first find x-pos of both arrows
-        x = int((self._pos / 255.0) * (w - 2))
+        x = int((old_div(self._pos, 255.0)) * (w - 2))
         s = 5
         y0 = 0
         y1 = y0 + h
@@ -144,7 +147,7 @@ class RGBColour(wx.Panel):
 
         colour = wx.Colour(self._comp['r'], self._comp['g'], self._comp['b'])
 
-        print self._comp
+        print(self._comp)
 
         fill_brush = wx.Brush(colour, wx.SOLID)
 
@@ -201,7 +204,7 @@ class RGBSelection(wx.Panel):
 if __name__ == '__main__':
 
     def cb(r, g, b, done):
-        print 'value changed:', r, g, b
+        print('value changed:', r, g, b)
 
     app = wx.App()
     top = wx.Frame(None, title="Test", size=(300, 200))

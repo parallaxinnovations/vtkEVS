@@ -39,6 +39,8 @@
 # This file represents a derivative work by Parallax Innovations Inc.
 #
 
+from builtins import zip
+from builtins import range
 import vtk
 from vtkAtamai import ActorFactory, AnatomicalLabelsFactory
 
@@ -72,7 +74,7 @@ class EVSAnatomicalLabelsFactory(AnatomicalLabelsFactory.AnatomicalLabelsFactory
     def SetLabels(self, labels):
         self._Labels = labels
 
-        for i, obj in zip(range(len(self._textObjects)), self._textObjects):
+        for i, obj in zip(list(range(len(self._textObjects))), self._textObjects):
             obj.SetText(labels[i])
 
         self.Modified()

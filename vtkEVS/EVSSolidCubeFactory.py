@@ -93,7 +93,7 @@ class EVSSolidCubeFactory(ActorFactory.ActorFactory):
         """Set the color of the rectangular solid."""
         if len(args) == 1:
             args = args[0]
-        apply(self._Property.SetColor, args)
+        self._Property.SetColor(*args)
 
     def GetColor(self):
         """Get the current color of the rectangular solid."""

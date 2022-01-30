@@ -15,6 +15,7 @@ Methods:
 
 """
 
+from builtins import object
 import sys
 import os
 

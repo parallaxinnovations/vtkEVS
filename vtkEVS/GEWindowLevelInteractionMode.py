@@ -1,5 +1,9 @@
+from __future__ import division
+from past.utils import old_div
 import logging
 from vtkAtamai import WindowLevelInteractionMode
+
+logger = logging.getLogger(__name__)
 
 
 class GEWindowLevelInteractionMode(WindowLevelInteractionMode.WindowLevelInteractionMode):
@@ -21,11 +25,11 @@ class GEWindowLevelInteractionMode(WindowLevelInteractionMode.WindowLevelInterac
 
     def DoMotion(self, event):
         if not self._LookupTable:
-            logging.info(
+            logger.info(
                 "GEWindowLevelInteractionMode: LookupTable must be set!")
             return
         if not self._DataRange:
-            logging.info(
+            logger.info(
                 "GEWindowLevelInteractionMode: DataRange must be set!")
             return
 
@@ -33,7 +37,7 @@ class GEWindowLevelInteractionMode(WindowLevelInteractionMode.WindowLevelInterac
         min, max = self._DataRange
         # min,max = (0,1024)
         lo, hi = table.GetTableRange()
-        level = (lo + hi) / 2.0
+        level = old_div((lo + hi), 2.0)
         window = hi - lo
 
         dx = event.x - self._LastX
@@ -41,7 +45,7 @@ class GEWindowLevelInteractionMode(WindowLevelInteractionMode.WindowLevelInterac
         if dy == 0:
             action = 'horizontal'
         else:
-            ratio = abs(float(dx) / dy)
+            ratio = abs(old_div(float(dx), dy))
             if ratio >= 1.0:
                 action = 'horizontal'
             else:
@@ -66,7 +70,7 @@ class GEWindowLevelInteractionMode(WindowLevelInteractionMode.WindowLevelInterac
                     hi = lo
 
             window = hi - lo
-            level = (hi + lo) / 2.0
+            level = old_div((hi + lo), 2.0)
 
         else:
             if action == 'horizontal':
@@ -87,8 +91,8 @@ class GEWindowLevelInteractionMode(WindowLevelInteractionMode.WindowLevelInterac
             if level > max:
                 level = max
 
-            lo = level - window / 2.0
-            hi = level + window / 2.0
+            lo = level - old_div(window, 2.0)
+            hi = level + old_div(window, 2.0)
 
         if table.IsA('vtkWindowLevelLookupTable'):
             table.SetLevel(level)

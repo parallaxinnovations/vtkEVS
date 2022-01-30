@@ -1,3 +1,4 @@
+from __future__ import division
 # =========================================================================
 #
 # Copyright (c) 2000-2002 Enhanced Vision Systems
@@ -39,8 +40,11 @@
 # This file represents a derivative work by Parallax Innovations Inc.
 #
 
+from past.utils import old_div
 import logging
 from vtkAtamai import SlicePlaneFactory
+
+logger = logging.getLogger(__name__)
 
 
 class EVSSlicePlaneFactory(SlicePlaneFactory.SlicePlaneFactory):
@@ -73,7 +77,7 @@ class EVSSlicePlaneFactory(SlicePlaneFactory.SlicePlaneFactory):
             spacing = rs.GetInput().GetSpacing()
             e = list(rs.GetOutputExtent())
             for i in [1, 3, 5]:
-                e[i] = int(e[i] / float(v))
+                e[i] = int(old_div(e[i], float(v)))
             rs.SetOutputSpacing(spacing[0] * v, spacing[1] * v, spacing[2] * v)
             rs.SetOutputExtent(e)
 
@@ -89,7 +93,7 @@ class EVSSlicePlaneFactory(SlicePlaneFactory.SlicePlaneFactory):
     def SetUseSpacing(self, UseSpacing):
 
         if not isinstance(UseSpacing, bool):
-            logging.error(
+            logger.error(
                 "SetUseSpacing: value {} is not a bool!".format(UseSpacing))
             UseSpacing = bool(UseSpacing)
 
@@ -109,14 +113,14 @@ class EVSSlicePlaneFactory(SlicePlaneFactory.SlicePlaneFactory):
             SlicePosition = self.GetSlicePosition()
             Normal = self.GetNormal()
             if ((Normal[0] == 0) and (Normal[1] == 0)):
-                diff = (round((SlicePosition - origin[2]) / spacing[2]) -
-                        ((SlicePosition - origin[2]) / spacing[2])) * spacing[2]
+                diff = (round(old_div((SlicePosition - origin[2]), spacing[2])) -
+                        (old_div((SlicePosition - origin[2]), spacing[2]))) * spacing[2]
             elif ((Normal[0] == 0) and (Normal[2] == 0)):
-                diff = (((SlicePosition - origin[1]) / spacing[1]) -
-                        round((SlicePosition - origin[1]) / spacing[1])) * spacing[1]
+                diff = ((old_div((SlicePosition - origin[1]), spacing[1])) -
+                        round(old_div((SlicePosition - origin[1]), spacing[1]))) * spacing[1]
             else:
-                diff = (round((SlicePosition - origin[0]) / spacing[0]) -
-                        ((SlicePosition - origin[0]) / spacing[0])) * spacing[0]
+                diff = (round(old_div((SlicePosition - origin[0]), spacing[0])) -
+                        (old_div((SlicePosition - origin[0]), spacing[0]))) * spacing[0]
 
             self.Push(diff)
             self.__UseSpacing = True
@@ -139,28 +143,18 @@ class EVSSlicePlaneFactory(SlicePlaneFactory.SlicePlaneFactory):
 
             Normal = self.GetNormal()
             if ((Normal[0] == 0) and (Normal[1] == 0)):
-                SpacingDistance = round(distance / spacing[2]) * spacing[2]
+                SpacingDistance = round(
+                    old_div(distance, spacing[2])) * spacing[2]
             elif ((Normal[0] == 0) and (Normal[2] == 0)):
-                SpacingDistance = round(distance / spacing[1]) * spacing[1]
+                SpacingDistance = round(
+                    old_div(distance, spacing[1])) * spacing[1]
             else:
-                SpacingDistance = round(distance / spacing[0]) * spacing[0]
+                SpacingDistance = round(
+                    old_div(distance, spacing[0])) * spacing[0]
         else:
             SpacingDistance = distance
 
-        # just like vtkPlane::Push()
-        o1 = self.GetTransformedCenter()
-
-        self._Plane.Push(SpacingDistance)
-        self._Plane.Update()
-
-        self._UpdateOrigin()
-        o2 = self.GetTransformedCenter()
-        n = self.GetTransformedNormal()
-        # JDG - don't call Modified() here -- it gets called in _UpdateOrigin() indirectly
-        # self.Modified()
-
-        # return the actual amount pushed, in case we hit bounds
-        return (o2[0] - o1[0]) * n[0] + (o2[1] - o1[1]) * n[1] + (o2[2] - o1[2]) * n[2]
+        return SlicePlaneFactory.SlicePlaneFactory.Push(self, distance)
 
     def GetImageReslicers(self):
         return self._ImageReslicers

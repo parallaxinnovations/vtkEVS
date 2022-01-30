@@ -50,19 +50,29 @@ See Also:
   RenderPane2D
 
 """
+from __future__ import print_function
 
 import logging
 import os
 import vtk
 import wx
 from vtkAtamai import RenderPane2D, RenderPane
+from PI.visualization.common.events import ShowContextSensitiveMenuCommand
+
+# we have references here to MicroView from vtkEVS - this should probably be reworked by sending a generic message instead
+from PI.visualization.MicroView.interfaces import IMicroViewMainFrame
+from PI.visualization.MicroView import LayoutMenuManager
+
+from zope import component, event
+
+logger = logging.getLogger(__name__)
 
 
 class EVSRenderPane2D(RenderPane2D.RenderPane2D):
 
-    def __init__(self, master, **kw):
+    def __init__(self, parent, **kw):
 
-        self._master = master
+        self._parent = parent
         self._index = 0
         self._pane_name = kw['name']
 
@@ -70,9 +80,9 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
             self._index = kw['index']
             del(kw['index'])
         else:
-            logging.error("EVSRenderPane2D requires an image index!")
+            logger.error("EVSRenderPane2D requires an image index!")
 
-        RenderPane2D.RenderPane2D.__init__(self, master, **kw)
+        super(EVSRenderPane2D, self).__init__(parent, **kw)
         self.SetBorderWidth(2)
 
         # event object
@@ -87,12 +97,21 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
         self._B1Action = 'pan'
 
         # create some default cursors
-        self._cursors = {'winlev': wx.StockCursor(wx.CURSOR_ARROW),
-                         'rotate': wx.StockCursor(wx.CURSOR_ARROW),
-                         'zoom': wx.StockCursor(wx.CURSOR_MAGNIFIER),
-                         'pan': wx.StockCursor(wx.CURSOR_HAND),
-                         'slice': wx.StockCursor(wx.CURSOR_ARROW),
-                         'spin': wx.StockCursor(wx.CURSOR_ARROW),
+        if 'phoenix' in wx.version():
+            _func = wx.Cursor
+        else:
+            _func = wx.StockCursor
+
+        # keep track of whether mouse moved during right click events
+        self._right_click_x = None
+        self._right_click_y = None
+
+        self._cursors = {'winlev': _func(wx.CURSOR_ARROW),
+                         'rotate': _func(wx.CURSOR_ARROW),
+                         'zoom': _func(wx.CURSOR_MAGNIFIER),
+                         'pan': _func(wx.CURSOR_HAND),
+                         'slice': _func(wx.CURSOR_ARROW),
+                         'spin': _func(wx.CURSOR_ARROW),
                          }
         # override some of the default with cursor if we find them on disk
         for action in ('pan', 'winlev', 'zoom', 'slice', 'spin'):
@@ -100,11 +119,21 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
             if os.path.exists(filename):
                 try:
                     image = wx.Image(filename)
-                    image.SetOptionInt(wx.IMAGE_OPTION_CUR_HOTSPOT_X, 1)
-                    image.SetOptionInt(wx.IMAGE_OPTION_CUR_HOTSPOT_Y, 1)
-                    self._cursors[action] = wx.CursorFromImage(image)
+                    if 'phoenix' in wx.version():
+                        image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_X, 1)
+                        image.SetOption(wx.IMAGE_OPTION_CUR_HOTSPOT_Y, 1)
+                        self._cursors[action] = wx.Cursor(image)
+                    else:
+                        image.SetOptionInt(wx.IMAGE_OPTION_CUR_HOTSPOT_X, 1)
+                        image.SetOptionInt(wx.IMAGE_OPTION_CUR_HOTSPOT_Y, 1)
+                        self._cursors[action] = wx.CursorFromImage(image)
                 except:
-                    logging.exception("EVSRenderPane2D")
+                    logger.exception("EVSRenderPane2D")
+
+        # ---------------------------------------------------------------------
+        # Set up some zope event handlers
+        # ---------------------------------------------------------------------
+        component.provideHandler(self.ShowContextSensitiveMenu)
 
     def GetName(self):
         return self._pane_name
@@ -119,20 +148,25 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
         self._tracked_sliceplane_index = idx
 
     def tearDown(self):
-        RenderPane2D.RenderPane2D.tearDown(self)
+        try:
+            super(EVSRenderPane2D, self).tearDown()
 
-        for actor in self.GetActorFactories():
-            actor.RemoveFromRenderer(self._Renderer)
-        self._ActorFactories = []
+            for actor in self.GetActorFactories():
+                actor.RemoveFromRenderer(self._Renderer)
+            self._ActorFactories = []
 
-        self.RemoveAllEventHandlers()
-        self._eventObject.RemoveAllObservers()
-        self._Renderer.RemoveAllObservers()
+            self.RemoveAllEventHandlers()
+            self._eventObject.RemoveAllObservers()
+        except Exception as e:
+            logger.exception(e)
 
-        del(self._eventObject)
-        del(self._master)
-        del(self.__orthoPlanes)
-        del(self._Renderer)
+        # unregister our zope handlers
+        gsm = component.getGlobalSiteManager()
+        gsm.unregisterHandler(self.ShowContextSensitiveMenu)
+
+        del self._eventObject
+        del self._parent
+        del self.__orthoPlanes
 
     def GetObjectState(self):
         return None
@@ -140,11 +174,11 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
     def SetObjectState(self, obj):
         pass
 
-    def AddObserver(self, event, command):
-        self._eventObject.AddObserver(event, command)
+    def AddObserver(self, evt, command):
+        self._eventObject.AddObserver(evt, command)
 
     def BindDefaultInteraction(self):
-        RenderPane2D.RenderPane2D.BindDefaultInteraction(self)
+        super(EVSRenderPane2D, self).BindDefaultInteraction()
         self.BindPanToButton(1)
         self.BindResetToButton(2, "Shift")
 
@@ -167,9 +201,9 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
                                self.SetOrthoCenter),
                               button, modifier)
 
-    def SetOrthoCenter(self, event):
+    def SetOrthoCenter(self, evt):
         if self.__orthoPlanes:
-            pos = self.GetCursorPosition(event)
+            pos = self.GetCursorPosition(evt)
             if pos:
                 self.__orthoPlanes.SetOrthoCenter(pos)
 
@@ -185,10 +219,10 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
                     return info.position
         return None
 
-    def GetCursorPosition(self, event):
+    def GetCursorPosition(self, evt):
         """Return cursor position on RenderPane."""
 
-        self.DoSmartPick(event)
+        self.DoSmartPick(evt)
         infoList = self._PickInformationList
         if len(infoList) > 0:
             for info in infoList:
@@ -196,52 +230,112 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
                     return info.position
         return None
 
-    def DoStartMotion(self, event):
+    def DoStartMotion(self, evt):
 
-        if event.num == 1:
-            if event.state == 1:  # Shift key
+        if evt.num == 1:
+            if evt.state == 1:  # Shift key
                 curs = self._cursors['pan']
             else:
                 curs = self._cursors[self._B1Action]
-        elif event.num == 2:
+        elif evt.num == 2:
             curs = self._cursors['slice']
-        elif event.num == 3:
+        elif evt.num == 3:
+
+            # keep track of current mouse position - we want to differentiate
+            # between zooming and context sensitive menu
+            self._right_click_x = evt.x
+            self._right_click_y = evt.y
+
             curs = self._cursors['zoom']
 
-        self._master.SetCursor(curs)
-        RenderPane.RenderPane.DoStartMotion(self, event)
+        if evt.num in (1, 2):
+            self._parent.SetCursor(curs)
 
-    def DoEndMotion(self, event):
-        curs = wx.StockCursor(wx.CURSOR_ARROW)
-        self._master.SetCursor(curs)
-        RenderPane.RenderPane.DoEndMotion(self, event)
+        RenderPane.RenderPane.DoStartMotion(self, evt)
 
-    def DoStartAction(self, event):
+    @component.adapter(ShowContextSensitiveMenuCommand)
+    def ShowContextSensitiveMenu(self, evt):
 
-        RenderPane2D.RenderPane2D.DoStartAction(self, event)
-        self._master.SetCursor(self._cursors['slice'])
+        # ignore messages that don't originate in our window
+        if evt.GetWindow() != self:
+            return
 
-    def DoEndAction(self, event):
+        popup_menu = wx.Menu()
 
-        RenderPane2D.RenderPane2D.DoEndAction(self, event)
-        self._master.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
+        wx_version = wx.version()
 
-    def DoPickActor(self, event):
+        # duplicate Window->Layout here
+        mvframe = component.getUtility(IMicroViewMainFrame)
+        lm = LayoutMenuManager.LayoutMenuManager(mvframe, mvframe.SetLayout)
+        lm.UpdateMenus()
+        if 'phoenix' in wx.version():
+            popup_menu.Append(wx.ID_ANY, '&Layout', lm.GetMenu())
+        else:
+            popup_menu.AppendMenu(wx.ID_ANY, '&Layout', lm.GetMenu())
+        self._parent.PopupMenu(popup_menu)
+        popup_menu.Destroy()
 
-        RenderPane2D.RenderPane2D.DoPickActor(self, event)
+    def DoEndMotion(self, evt):
+
+        # keep track of current mouse position - we want to differentiate
+        # between zooming and context sensitive menu
+        if self._right_click_x is not None:
+            if (evt.x == self._right_click_x) and (evt.y == self._right_click_y):
+                # a right click menu should be displayed
+                event.notify(ShowContextSensitiveMenuCommand(self))
+
+        self._right_click_x = None
+        self._right_click_y = None
+
+        if 'phoenix' in wx.version():
+            curs = wx.Cursor(wx.CURSOR_ARROW)
+        else:
+            curs = wx.StockCursor(wx.CURSOR_ARROW)
+
+        self._parent.SetCursor(curs)
+        RenderPane.RenderPane.DoEndMotion(self, evt)
+
+    def DoStartAction(self, evt):
+
+        super(EVSRenderPane2D, self).DoStartAction(evt)
+        self._parent.SetCursor(self._cursors['slice'])
+
+    def DoEndAction(self, evt):
+
+        super(EVSRenderPane2D, self).DoEndAction(evt)
+        self._parent.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
+
+    def DoPickActor(self, evt):
+
+        super(EVSRenderPane2D, self).DoPickActor(evt)
 
         if self._CurrentActorFactory is not None:
-            if event.num > 0:
-                self._master.SetCursor(self._cursors['slice'])
+            if evt.num > 0:
+                self._parent.SetCursor(self._cursors['slice'])
 
-    def DoReleaseActor(self, event):
+    def DoReleaseActor(self, evt):
 
-        RenderPane2D.RenderPane2D.DoPickActor(self, event)
-        if event.num > 0:
-            self._master.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
+        super(EVSRenderPane2D, self).DoPickActor(evt)
+        if evt.num > 0:
+            if 'phoenix' in wx.version():
+                cur = wx.Cursor(wx.CURSOR_ARROW)
+            else:
+                cur = wx.StockCursor(wx.CURSOR_ARROW)
+            self._parent.SetCursor(cur)
 
     def SetPlaneIntersection(self, planeintersection):
         self._PlaneIntersection = planeintersection
+
+    def DoCameraZoom(self, evt):
+        """Mouse motion handler for zooming the scene."""
+
+        if (self._right_click_x != None):
+            # we should change cursor here
+            self._parent.SetCursor(self._cursors['zoom'])
+            self._right_click_x = None
+            self._right_click_y = None
+
+        super(EVSRenderPane2D, self).DoCameraZoom(evt)
 
     def EnableMotionMonitoring(self):
         self.BindEvent("<Motion>", self.OnMouseMove)
@@ -252,10 +346,14 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
     def SetPlaneIntersections(self, planeintersections):
         self._PlaneIntersections = planeintersections
 
-    def DecrementPush(self, event, factor=1):
-        input = self._Plane.GetInput()
-        # input.UpdateInformation()  # TODO: fix VTK-6
-        spacing = input.GetSpacing()
+    def DecrementPush(self, evt, factor=1):
+
+        alg = self._Plane.GetInputConnection()
+        producer = alg.GetProducer()
+        producer.UpdateInformation()
+        image_data = producer.GetOutputDataObject(0)
+
+        spacing = image_data.GetSpacing()
 
         Normal = self._Plane.GetNormal()
         UseSpacing = self._Plane.GetUseSpacing()
@@ -272,10 +370,14 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
         self._Plane.SetUseSpacing(UseSpacing)
         self._Plane.Render(self._Renderer)
 
-    def IncrementPush(self, event, factor=1):
-        input = self._Plane.GetInput()
-        # input.UpdateInformation()  # TODO: fix VTK-6
-        spacing = input.GetSpacing()
+    def IncrementPush(self, evt, factor=1):
+
+        alg = self._Plane.GetInputConnection()
+        producer = alg.GetProducer()
+        producer.UpdateInformation()
+        image_data = producer.GetOutputDataObject(0)
+
+        spacing = image_data.GetSpacing()
 
         Normal = self._Plane.GetNormal()
         UseSpacing = self._Plane.GetUseSpacing()
@@ -292,47 +394,56 @@ class EVSRenderPane2D(RenderPane2D.RenderPane2D):
         self._Plane.SetUseSpacing(UseSpacing)
         self._Plane.Render(self._Renderer)
 
-    def PriorDecrementPush(self, event):
-        self.DecrementPush(event, 10)
+    def PriorDecrementPush(self, evt):
+        self.DecrementPush(evt, 10)
 
-    def NextIncrementPush(self, event):
-        self.IncrementPush(event, 10)
+    def NextIncrementPush(self, evt):
+        self.IncrementPush(evt, 10)
 
-    def HomeDecrementPush(self, event):
-        input = self._Plane.GetInput()
-        # input.UpdateInformation()  # TODO: fix VTK-6
+    def HomeDecrementPush(self, evt):
+
+        alg = self._Plane.GetInputConnection()
+        producer = alg.GetProducer()
+        producer.UpdateInformation()
+        image_data = producer.GetOutputDataObject(0)
+
         Normal = self._Plane.GetNormal()
-        extent = input.GetExtent()
+        extent = image_data.GetExtent()
         if ((Normal[0] == 0) and (Normal[1] == 0)):
-            self.DecrementPush(event, extent[5])
+            self.DecrementPush(evt, extent[5])
         elif ((Normal[0] == 0) and (Normal[2] == 0)):
-            self.DecrementPush(event, extent[3])
+            self.DecrementPush(evt, extent[3])
         else:
-            self.DecrementPush(event, extent[1])
+            self.DecrementPush(evt, extent[1])
 
-    def EndIncrementPush(self, event):
-        input = self._Plane.GetInput()
-        # input.UpdateInformation()  # TODO: fix VTK-6
+    def EndIncrementPush(self, evt):
+
+        alg = self._Plane.GetInputConnection()
+        producer = alg.GetProducer()
+        producer.UpdateInformation()
+        image_data = producer.GetOutputDataObject(0)
+
         Normal = self._Plane.GetNormal()
-        extent = input.GetExtent()
+        extent = image_data.GetExtent()
         if ((Normal[0] == 0) and (Normal[1] == 0)):
-            self.IncrementPush(event, extent[5])
+            self.IncrementPush(evt, extent[5])
         elif ((Normal[0] == 0) and (Normal[2] == 0)):
-            self.IncrementPush(event, extent[3])
+            self.IncrementPush(evt, extent[3])
         else:
-            self.IncrementPush(event, extent[1])
+            self.IncrementPush(evt, extent[1])
 
     # Save the scene in the selected view port
-    def SavePlaneAsImage(self, event):
-        print "to be implement in application"
+    def SavePlaneAsImage(self, evt):
+        print("to be implement in application")
 
     def SetPaneName(self, PaneName):
         self.PaneName = PaneName
 
-    def OnMouseMove(self, event):
+    def OnMouseMove(self, evt):
 
-        position = self.GetCursorPosition(event)
+        position = self.GetCursorPosition(evt)
         self._eventObject.position = position
+        self._eventObject.evt = evt
         self._eventObject.InvokeEvent('MouseMoveEvent')
 
     def SetOrthoPlanes(self, orthoPlanes):

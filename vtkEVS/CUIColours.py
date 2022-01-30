@@ -1,8 +1,11 @@
+from __future__ import division
 #
 # Simple class that defines the GE CUI colours
 #
 
 
+from builtins import object
+from past.utils import old_div
 class CUIColours(object):
 
     def __init__(self):
@@ -47,18 +50,18 @@ class CUIColours(object):
 
     def NormalizedOn(self):
         self.P1 = (1.0, 1.0, 1.0)
-        self.P2 = (240 / 255.0, 242 / 255.0, 247 / 255.0)
-        self.P3 = (186 / 255.0, 190 / 255.0, 204 / 255.0)
-        self.P4 = (134 / 255.0, 140 / 255.0, 161 / 255.0)
-        self.P5 = (228 / 255.0, 231 / 255.0, 241 / 255.0)
-        self.P7 = (186 / 255.0, 193 / 255.0, 218 / 255.0)
-        self.P8 = (141 / 255.0, 152 / 255.0, 190 / 255.0)
-        self.P9 = (104 / 255.0, 117 / 255.0, 163 / 255.0)
-        self.P10 = (47 / 255.0, 61 / 255.0, 110 / 255.0)
+        self.P2 = (old_div(240, 255.0), old_div(242, 255.0), old_div(247, 255.0))
+        self.P3 = (old_div(186, 255.0), old_div(190, 255.0), old_div(204, 255.0))
+        self.P4 = (old_div(134, 255.0), old_div(140, 255.0), old_div(161, 255.0))
+        self.P5 = (old_div(228, 255.0), old_div(231, 255.0), old_div(241, 255.0))
+        self.P7 = (old_div(186, 255.0), old_div(193, 255.0), old_div(218, 255.0))
+        self.P8 = (old_div(141, 255.0), old_div(152, 255.0), old_div(190, 255.0))
+        self.P9 = (old_div(104, 255.0), old_div(117, 255.0), old_div(163, 255.0))
+        self.P10 = (old_div(47, 255.0), old_div(61, 255.0), old_div(110, 255.0))
         self.P11 = (0.0,  0.0, 0.0)
-        self.P12 = (255 / 255.0, 250 / 255.0, 225 / 255.0)
-        self.P13 = (225 / 255.0, 241 / 255.0, 171 / 255.0)
-        self.Red = (237 / 255.0,  28 / 255.0,  39 / 255.0)
-        self.Yellow = (255 / 255.0,  229 / 255.0,  6 / 255.0)
-        self.Green = (0.0,  171 / 255.0,  89 / 255.0)
-        self.Orange = (255 / 255.0,  141 / 255.0,  0.0)
+        self.P12 = (old_div(255, 255.0), old_div(250, 255.0), old_div(225, 255.0))
+        self.P13 = (old_div(225, 255.0), old_div(241, 255.0), old_div(171, 255.0))
+        self.Red = (old_div(237, 255.0),  old_div(28, 255.0),  old_div(39, 255.0))
+        self.Yellow = (old_div(255, 255.0),  old_div(229, 255.0),  old_div(6, 255.0))
+        self.Green = (0.0,  old_div(171, 255.0),  old_div(89, 255.0))
+        self.Orange = (old_div(255, 255.0),  old_div(141, 255.0),  0.0)

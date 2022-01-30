@@ -1,0 +1,14 @@
+language: python
+python:
+  - "3.9"
+# command to install dependencies
+install:
+  - pip install -U setuptools
+  - pip install -r requirements.txt
+  - pip install .
+  - pip install -U pytest
+  - pip install pytest-cov tempdir>=0.7.1 future codecov
+# command to run tests
+script:
+  - pytest --cov=vtkEVS
+  - codecov

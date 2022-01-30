@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # =========================================================================
 #
 # Copyright (c) 2000-2002 Enhanced Vision Systems
@@ -39,35 +40,38 @@
 # This file represents a derivative work by Parallax Innovations Inc.
 #
 
+from builtins import range
+from builtins import object
 import logging
 import vtk
+import numpy as np
 
-from zope import interface
+from zope.interface import implementer
 
-from vtkAtamai import OrthoPlanesFactory, PaneFrame
-import EVSSlicePlaneFactory
-import OrthoPlanesIntersectionsFactory
+from vtkAtamai import OrthoPlanesFactory
+from . import EVSSlicePlaneFactory
+from . import OrthoPlanesIntersectionsFactory
 from vtkEVS.interfaces import IEVSOrthoPlanesFactory
 
+logger = logging.getLogger(__name__)
 
+
+@implementer(IEVSOrthoPlanesFactory)
 class EVSOrthoPlanesFactory(OrthoPlanesFactory.OrthoPlanesFactory):
 
     """Extends the basic functionality of the Atamai OrthoPlanesFactory class."""
 
-    interface.implements(IEVSOrthoPlanesFactory)
-
     def __init__(self):
+
+        self.__ignoreEvents = False
 
         OrthoPlanesFactory.OrthoPlanesFactory.__init__(self)
 
-        self._PickPlane = None
         self._AxialOnOff = 1
         self._CoronalOnOff = 1
         self._SagittalOnOff = 1
         self.__DisableOblique = False
         self._PlanesOutlineOnOff = 1
-
-        self.BindEvent("<Motion>", self.PickPlane)
 
         # override OrthoPlaneFactory's action colors
         self._PushColor = [1.0, 1.0, 0.0]
@@ -86,6 +90,14 @@ class EVSOrthoPlanesFactory(OrthoPlanesFactory.OrthoPlanesFactory):
 
         self._DefaultOutlineColors = (blue1, green1, red1)
         self.SetDefaultOutlineColors()
+
+    def GetIgnoreEvents(self):
+        return self.__ignoreEvents
+
+    def Modified(self):
+        self.__ignoreEvents = True
+        super(EVSOrthoPlanesFactory, self).Modified()
+        self.__ignoreEvents = False
 
     def tearDown(self):
         for plane in self._Planes:
@@ -176,7 +188,7 @@ class EVSOrthoPlanesFactory(OrthoPlanesFactory.OrthoPlanesFactory):
                 outline = plane.GetChild('Outline')
                 outline._Property.SetOpacity(opacity)
             except:
-                logging.exception("EVSOrthoPlanesFactory")
+                logger.exception("EVSOrthoPlanesFactory")
 
     def GetIntersections(self):
         return self._Intersections
@@ -264,9 +276,6 @@ class EVSOrthoPlanesFactory(OrthoPlanesFactory.OrthoPlanesFactory):
 
     def SetPlaneIntersections(self, planeintersections):
         pass
-##     self._PlaneIntersections = planeintersections
-# for i in range(3):
-# self._Planes[i].SetPlaneIntersections(planeintersections)
 
     def SetRotateAndSpinOnOff(self, onoff):
         self.__DisableOblique = onoff
@@ -281,6 +290,7 @@ class EVSOrthoPlanesFactory(OrthoPlanesFactory.OrthoPlanesFactory):
         self.__DisableOblique = False
 
     def DoResetPlanes(self, event=None):
+
         if self.__DisableOblique:
             return
         self._Transform.Identity()
@@ -309,22 +319,28 @@ class EVSOrthoPlanesFactory(OrthoPlanesFactory.OrthoPlanesFactory):
         OrthoPlanesFactory.OrthoPlanesFactory.DoEndAction2(self, event)
         self.SetDefaultOutlineColors()
 
+    def SetOrientation(self, o1, o2, o3):
+        center = self.GetOrthoCenter()
+        _t = self.GetTransform()
+        _t.Identity()
+        _t.PostMultiply()
+        _t.Translate(-center[0], -center[1], -center[2])
+        _t.RotateX(o1)
+        _t.RotateY(o2)
+        _t.RotateZ(o3)
+        _t.Translate(center[0], center[1], center[2])
+
+        self.Modified()
+
     def DoSpin(self, event):
-        if self._Plane is None:
-            return
+
         if self.__DisableOblique:
             return
 
         # call our parent
         OrthoPlanesFactory.OrthoPlanesFactory.DoSpin(self, event)
 
-# for planeintersection in self._PlaneIntersections:
-##         planeintersection.DoSpin(self.GetOrthoCenter(), self._Transform.TransformNormal(self._Plane.GetNormal()), self._dw)
-# planeintersection.UpdatePlaneIntersections()
-
     def DoRotation(self, event):
-        if self._Plane is None:
-            return
 
         if self.__DisableOblique:
             return
@@ -332,27 +348,8 @@ class EVSOrthoPlanesFactory(OrthoPlanesFactory.OrthoPlanesFactory):
         # call our parent
         OrthoPlanesFactory.OrthoPlanesFactory.DoRotation(self, event)
 
-# HQ: not work with new vtkAtamai RenderPane, fix please !
-# for planeintersection in self._PlaneIntersections:
-##       planeintersection.DoRotation(self.GetOrthoCenter(), self._Transform.TransformVector(self.__RotateAxis), self._dw)
-# planeintersection.UpdatePlaneIntersections()
-
-    def PickPlane(self, event):
-        for plane in self._Planes:
-            if event.actor in plane.GetActors(event.renderer):
-                self._PickPlane = plane
-                break
-        # let parent class handle rest of event
-        OrthoPlanesFactory.OrthoPlanesFactory.DoAction(self, event)
-
-    def GetPickedPlane(self):
-        return self._PickPlane
-
     def GetPlane(self, idx):
         return self._Planes[idx]
-
-    def SetPickedPlaneByNumber(self, planenumber):
-        self._PickPlane = self._Planes[planenumber]
 
     def TogglePlanesOutline(self, toggle=None):
         """Toggle or set planes outline
@@ -374,7 +371,6 @@ class EVSOrthoPlanesFactory(OrthoPlanesFactory.OrthoPlanesFactory):
                 plane.OutlineOff()
 
         self.Modified()
-        # PaneFrame.RenderAll()
 
     def GetPlanesOutlineOnOff(self):
         return self._PlanesOutlineOnOff
@@ -386,6 +382,10 @@ class EVSOrthoPlanesFactory(OrthoPlanesFactory.OrthoPlanesFactory):
             center: 3D position of center
 
         """
+
+        # JDG
+        center = self._Transform.TransformPoint(*center)
+
         if len(center) == 1:
             center = center[0]
 

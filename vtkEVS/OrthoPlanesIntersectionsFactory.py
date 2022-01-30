@@ -70,7 +70,12 @@ Public Methods:
 
   SetColor(*i*, **args*) -- Set color of *i*. *args* could be (r,g,b) or r,g,b.
 """
+from __future__ import division
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from past.utils import old_div
 import math
 import vtk
 from vtkAtamai import ActorFactory
@@ -80,9 +85,9 @@ class OrthoPlanesIntersectionsFactory(ActorFactory.ActorFactory):
 
     def __str__(self):
 
-        import cStringIO
+        import io
 
-        s = cStringIO.StringIO()
+        s = io.StringIO()
         # TODO: implement me
         return s.getvalue()
 
@@ -127,11 +132,7 @@ class OrthoPlanesIntersectionsFactory(ActorFactory.ActorFactory):
         for i in range(3):
             for j in range(i + 1, 3):
                 cutter = vtk.vtkCutter()
-                # VTK-6
-                if vtk.vtkVersion().GetVTKMajorVersion() > 5:
-                    cutter.SetInputData(planes[i].GetPolyData())
-                else:
-                    cutter.SetInput(planes[i].GetPolyData())
+                cutter.SetInputConnection(planes[i].GetPlane().GetOutputPort())
                 cutter.SetCutFunction(planes[j].GetPlaneEquation())
                 self._Cutters.append(cutter)
 
@@ -218,11 +219,11 @@ class OrthoPlanesIntersectionsFactory(ActorFactory.ActorFactory):
             worldsize = camera.GetParallelScale()
             windowWidth, windowHeight = ren.GetSize()
             if windowWidth > 0:
-                pitch = worldsize / max(windowWidth, windowHeight)
+                pitch = old_div(worldsize, max(windowWidth, windowHeight))
             else:
                 pitch = 1.0
-            d1 = worldsize / 100
-            d2 = worldsize / 95.
+            d1 = old_div(worldsize, 100)
+            d2 = old_div(worldsize, 95.)
 
         else:
             d1 = camera.GetDistance() * \
@@ -240,7 +241,7 @@ class OrthoPlanesIntersectionsFactory(ActorFactory.ActorFactory):
                 self._Cutters[i].Update()
                 x1, x2, y1, y2, z1, z2 = self._Cutters[
                     i].GetOutput().GetBounds()
-                self._Planes[0].GetOutput()
+                # self._Planes[0].GetOutput()
 
                 point1 = (x1 + v2[0], y1 + v2[1], z1 + v2[2])
                 point2 = (x2 + v2[0], y2 + v2[1], z2 + v2[2])
@@ -277,7 +278,8 @@ class OrthoPlanesIntersectionsFactory(ActorFactory.ActorFactory):
         aspect = (1.0, 1.0)  # adjusted 2014-12-16
         size = ren.GetSize()
         for i in (0, 1):
-            margin = aspect[i] - (self._ConeSize / 2.0) / size[i]
+            margin = aspect[i] - \
+                old_div((old_div(self._ConeSize, 2.0)), size[i])
             if p[i] < -margin:
                 p[i] = -margin
             elif p[i] > margin:
@@ -309,7 +311,7 @@ class OrthoPlanesIntersectionsFactory(ActorFactory.ActorFactory):
             mapper = vtk.vtkPolyDataMapper()
             mapper.SetInputConnection(self._Cones[i].GetOutputPort())
             actor = self._NewActor()
-            actor.SetProperty(self._ConeProperties[i / 2])
+            actor.SetProperty(self._ConeProperties[old_div(i, 2)])
             actor.SetMapper(mapper)
             actor.PickableOff()
             actors.append(actor)
