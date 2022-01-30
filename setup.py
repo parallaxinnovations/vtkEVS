@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2000-2002 Enhanced Vision Systems
 # Copyright (c) 2002-2008 GE Healthcare
-# Copyright (c) 2011-2015 Parallax Innovations Inc.
+# Copyright (c) 2011-2022 Parallax Innovations Inc.
 #
 # Use, modification and redistribution of the software, in source or
 # binary forms, are permitted provided that the following terms and
@@ -38,29 +38,25 @@
 import sys
 import os
 
-# don't use distribute on Mac and Windows platforms
-if sys.platform.startswith('linux'):
-    from setuptools import setup
-else:
-    from distutils.core import setup
+from setuptools import setup
 
 desc = """
   vtkEVS is an open source collection of Python/VTK classes which form
   part of the basic set of classes necessary to run MicroView.
 
   More information about MicroView can be found at
-  http://www.sourceforge.net/projects/microview
+  https://microview.parallax-innovations.com
 """
 
 setup(name="vtkEVS",
-      version="2.5.0",
+      version="2.6.0",
       description="EVS VTK/Python visualization classes",
       long_description=desc,
       author="Jeremy Gill",
       author_email="jgill@parallax-innovations.com",
       maintainer="Jeremy Gill",
       maintainer_email="jgill@parallax-innovations.com",
-      url="http://microview.sourceforge.net/vtkEVS",
+      url="https://github.com/parallaxinnovations/vtkEVS",
       packages=['vtkEVS'],
       requires=['vtkAtamai'],
       license="MIT")
